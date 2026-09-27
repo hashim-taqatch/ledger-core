@@ -1,6 +1,6 @@
 # Architecture & Trade-offs
 
-*ledger-core — an in-memory account ledger core*
+*ledger-core: an in-memory account ledger core*
 
 ## 1. Append-only at scale
 
@@ -13,14 +13,14 @@ years rather than days, two things break in order.
 
 **First to break: the daily close.** A nightly batch that re-sums an
 account's whole lifetime history to compute one day's closing balance is
-O(total lifetime entries) per account per day, forever — a bank's oldest,
+O(total lifetime entries) per account per day, forever; a bank's oldest,
 most active accounts get slower to close every single day, with no
 ceiling. This is the classic general-ledger mistake of treating "closing
 balance" as a query instead of a maintained value.
 
 **Second, and structural: unbounded in-process memory.** Every entry ever
 posted, and every hold ever created (`ACTIVE`, `SETTLED`, or `DECLINED`),
-lives in a JS array/map for the process's entire lifetime — nothing is
+lives in a JS array/map for the process's entire lifetime; nothing is
 ever evicted, archived, or paged out. That's an explicit, correct
 simplification for a six-day, in-memory exercise, but it's also exactly
 where "in-memory" stops being viable: at 100x volume sustained over real
@@ -32,11 +32,11 @@ RAM regardless of how fast the CPU is.
 scratch and start *carrying it forward*. Cache a balance-forward snapshot
 each time a day closes (balance as of day N, plus the posted-day
 watermark it was computed at), and require every subsequent query to read
-that snapshot plus only the entries posted *since* it — never the full
+that snapshot plus only the entries posted *since* it, never the full
 history again. This is precisely how real general ledgers close monthly:
 detail is retained for audit, but the hot path only ever touches the
 delta since the last checkpoint. It requires no new infrastructure (no
-database, no external cache) — just treating "closing balance" as a
+database, no external cache); just treating "closing balance" as a
 value that gets computed once and carried, instead of a query re-run from
 day zero every time it's asked.
 
@@ -51,13 +51,13 @@ concrete exposures follow directly from that:
 - **Statement integrity.** A UAE-licensed bank sends customers periodic
   statements. If a Day 2 balance can silently mean something different
   once queried after Day 5 posts a backdated entry, "what my statement
-  said" and "what the system now says happened" diverge — and a customer
+  said" and "what the system now says happened" diverge, and a customer
   dispute has to be resolved by reconstructing *which value was true when
   disclosed*, not just what's true now.
 - **AML/CTF timing manipulation.** The ability to book an arbitrary past
   value_date is a natural vector for making a transaction appear to fall
   outside a monitoring or reporting window, or for reordering cash flows
-  around a reporting cutoff — exactly the pattern CBUAE-aligned AML
+  around a reporting cutoff; exactly the pattern CBUAE-aligned AML
   controls (and FATF-derived transaction-monitoring rules generally) are
   built to catch. An unconstrained backdating capability is a control gap
   by itself, independent of whether any single entry is malicious.
@@ -74,47 +74,47 @@ day beyond a defined tolerance (say, T+1) must carry a structured reason
 code (late clearing, correction, dispute reversal, ...), require a second
 authorizer distinct from whoever posted it, and automatically land on a
 same-day exception report for reconciliation review. This doesn't stop
-backdating — value-dated correction is a legitimate, necessary banking
-operation — it converts it from a silent capability into a supervised,
+backdating: value-dated correction is a legitimate, necessary banking
+operation; it converts it from a silent capability into a supervised,
 audited one, which is the actual gap in the current design (backdating
 works correctly; it just isn't watched).
 
 ## 3. Authorization lifecycle
 
 A settlement is only one of several ways an authorization's life can end.
-Each of the following needs its own first-class, terminal state — not a
-special case bolted onto settlement or reversal — because each carries
+Each of the following needs its own first-class, terminal state, not a
+special case bolted onto settlement or reversal, because each carries
 different money-movement and different downstream (dispute, support,
 regulatory) consequences:
 
 - **Voluntary release/cancellation**, pre-settlement. *Real scenario:* a
   hotel pre-authorization voided at checkout because the guest paid by
   another method. *Mandated behavior:* a `RELEASED` status distinct from
-  both `DECLINED` (never held funds) and `SETTLED` (funds actually moved)
-  — available balance is restored immediately, and support tooling needs
+  both `DECLINED` (never held funds) and `SETTLED` (funds actually moved);
+  available balance is restored immediately, and support tooling needs
   to be able to answer "was this ever charged" precisely.
 - **Expiry.** *Real scenario:* a rental-car pre-authorization the
   merchant never captures, and the network's hold window lapses. *Mandated
   behavior:* a scheduled sweep that automatically releases holds past
-  their lifetime — without one, an un-swept hold is a permanent phantom
+  their lifetime; without one, an un-swept hold is a permanent phantom
   debit against a customer's available funds, which is both a support
   and a regulatory-complaint vector. This cannot be a manual process.
 - **Declined at authorization time** (this system's Auth-B). *Real
   scenario:* insufficient available balance at swipe time. *Mandated
   behavior:* recorded as its own terminal state, `DECLINED`, because it
-  never held funds at all — conflating it with `RELEASED` makes "why did
+  never held funds at all; conflating it with `RELEASED` makes "why did
   my available balance never move" unanswerable.
 - **Partial settlement with release of the remainder.** *Real scenario:*
   a $200 fuel-pump hold that settles at $42 once the pump usage is known.
   *Mandated behavior:* the settled amount and the released remainder must
-  both be tracked explicitly (not just "hold closed") — card-network
+  both be tracked explicitly (not just "hold closed"); card-network
   dispute processes and reconciliation both need the split, not just the
   net effect.
 - **Multiple partial captures against one authorization.** *Real
   scenario:* a hotel folio or a split-shipment order settling in several
   captures against the same original hold. This system deliberately does
-  not support it — a hold is single-shot (`ACTIVE` → exactly one terminal
-  state) — which is a named cut below, not an oversight.
+  not support it: a hold is single-shot (`ACTIVE` → exactly one terminal
+  state), which is a named cut below, not an oversight.
 - **Issuer- or network-side unilateral release** (fraud hold, chargeback
   investigation). *Real scenario:* the card network reverses a hold
   outside the merchant/customer flow entirely. *Mandated behavior:* this
@@ -127,10 +127,10 @@ regulatory) consequences:
 - **Single terminal settlement per authorization; no partial/multi-capture.**
   Defers the risk that a real merchant flow (hotel, car rental, tips,
   split shipment) legitimately needs several settlements against one
-  hold — this system would reject that as "authorization not ACTIVE."
+  hold; this system would reject that as "authorization not ACTIVE."
 - **No time-based hold expiry.** Defers the risk that an un-settled,
   un-declined hold locks a customer's available funds forever with no
-  automatic recovery — acceptable for a fixed six-day, fully-enumerated
+  automatic recovery; acceptable for a fixed six-day, fully-enumerated
   event stream, not acceptable for a live book.
 - **No cap or review policy on over-settlement** (settlement amount
   exceeding the original hold). Defers real fraud/dispute exposure: this
@@ -138,7 +138,7 @@ regulatory) consequences:
   ACTIVE, with no re-authorization or tolerance check.
 - **Overdraft fee defined only for AED.** Defers the fact that a live
   multi-currency ledger needs an explicit fee (or no-fee) policy for
-  *every* currency it holds — this system surfaces that gap loudly (a
+  *every* currency it holds; this system surfaces that gap loudly (a
   warning, and a failing test) rather than silently doing nothing or
   guessing a number, but the gap itself is real and would block a BHD
   launch.
@@ -151,7 +151,7 @@ regulatory) consequences:
   the authorization check ("is available balance still ≥ 0 after this
   hold") is a check-then-act with no lock around it. Defers a real
   time-of-check/time-of-use race between two authorizations landing on
-  the same account at once — fine for a strictly ordered replay, not fine
+  the same account at once: fine for a strictly ordered replay, not fine
   for concurrent production traffic.
 - **No idempotency on event ids.** Replaying an event twice double-books
   it. Defers the reality that production ingestion (queues, retries) is
