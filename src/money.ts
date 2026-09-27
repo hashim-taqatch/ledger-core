@@ -52,7 +52,8 @@ export function splitEvenly(totalMinor: number, count: number): number[] {
   const remainder = totalMinor - base * count;
   const parts = new Array<number>(count).fill(base);
   for (let i = 0; i < remainder; i++) {
-    parts[count - 1 - i] += 1;
+    const index = count - 1 - i;
+    parts[index] = (parts[index] ?? base) + 1;
   }
   return parts;
 }
