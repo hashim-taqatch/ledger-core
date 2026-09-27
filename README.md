@@ -64,3 +64,4 @@ test/
 - [`AMBIGUITIES.md`](AMBIGUITIES.md) — every ambiguity found, and how it was resolved.
 - [`REJECTED.md`](REJECTED.md) — which acceptance criteria were refused, and why; approaches abandoned mid-build.
 - [`WORKLOG.md`](WORKLOG.md) — timestamped build log.
+- [`architecture-and-tradeoffs.pdf`](architecture-and-tradeoffs.pdf) — the separate Architecture & Trade-offs document (source: `architecture-source.md`, built via `python3 scripts/build_pdf.py`).

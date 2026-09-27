@@ -75,3 +75,22 @@ was already right.
 REJECTED.md written, drawing directly on the hand-derivation and the
 abandoned approaches above rather than reverse-engineering justifications
 after the fact.
+
+**2026-09-27 12:44–12:49** — Architecture & Trade-offs document drafted
+(`architecture-source.md`) and rendered to PDF (`scripts/build_pdf.py`,
+reportlab). First render came out at 6 pages — the script was treating
+every soft-wrapped source line as its own paragraph instead of joining
+wrapped lines into one flowing paragraph, which also broke bullet-list
+continuation lines out into stray top-level paragraphs. Fixed the
+line-merging into a small block-accumulator state machine (blank line /
+heading / new "- " bullet each start a fresh block; anything else
+continues whatever block, including a bullet, is currently open),
+re-rendered to images with pypdfium2, and read all three pages back to
+confirm headings, bullets, and emphasis render correctly. Final: 3 pages.
+
+**2026-09-27 12:49** — Repository complete: 3 commits, all tests passing
+except the one intentionally-failing test, README/NUMBERS/AMBIGUITIES/
+REJECTED/WORKLOG all present, architecture PDF rendered. Remaining before
+submission: push to GitHub as a public repo (kept local per the
+assignment owner's choice this session) and upload the PDF to the
+application portal.
