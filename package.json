@@ -1,0 +1,16 @@
+{
+  "name": "ledger-core",
+  "version": "0.1.0",
+  "description": "In-memory account ledger core: append-only event replay with holds, settlements, reversals, overdraft fees, and daily interest capitalization.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "replay": "tsx src/index.ts",
+    "test": "tsx --test test/*.test.ts"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3",
+    "@types/node": "^22.9.0"
+  }
+}
